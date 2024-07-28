@@ -6,6 +6,7 @@ from pandas import DataFrame
 from config import ROOT_PATH
 from pathlib import Path
 
+# Настройки логгера
 logger = logging.getLogger("utils_logs")
 logger.setLevel(logging.INFO)
 file_handler = logging.FileHandler(Path(ROOT_PATH, "logs/utils.log"), "w", encoding='utf-8')
@@ -44,7 +45,7 @@ def get_last_datetime(transactions: DataFrame) -> datetime:
     return max(transactions["Дата операции"])
 
 
-def get_transactions_for_period(transactions: DataFrame, query_date: datetime.datetime) -> DataFrame | DataFrame | None:
+def get_transactions_for_month(transactions: DataFrame, query_date: datetime.datetime) -> DataFrame | DataFrame | None:
     """Функция отбора информации о транзакциях с первого числа месяца заданной даты по заданную дату"""
     first_date = query_date.replace(day=1, hour=0, minute=0, second=0)
     logger.info(
@@ -58,6 +59,24 @@ def get_transactions_for_period(transactions: DataFrame, query_date: datetime.da
     else:
         logger.error(
             f"В период с {first_date.strftime("%d.%m.%Y")} по {query_date.strftime("%d.%m.%Y")} транзакций не найдено!")
+        return None
+
+
+def get_transactions_for_period(transactions: pd.DataFrame, date_start: datetime.datetime,
+                                date_stop: datetime.datetime) -> DataFrame | DataFrame | None:
+    """Функция отбора информации о транзакциях за заданный период времени"""
+    logger.info(
+        f"Вызвана функция отбора транзакций с {date_start.strftime("%d.%m.%Y")} по {date_stop.strftime("%d.%m.%Y")}")
+    selected_transactions = transactions.loc[
+        (transactions["Дата операции"] <= date_stop) & (transactions["Дата операции"] >= date_start)]
+    if not selected_transactions.empty:
+        logger.info(
+            f"Выбраны транзакции с {date_start.strftime("%d.%m.%Y")} по {date_stop.strftime("%d.%m.%Y")}")
+        return selected_transactions
+    else:
+        logger.error(
+            f"В период с {date_start.strftime("%d.%m.%Y")} по {date_stop.strftime("%d.%m.%Y")} транзакций не найдено!")
+        return None
 
 
 def get_transactions_analyzed(transactions: DataFrame) -> list[dict]:
@@ -97,11 +116,3 @@ def get_transactions_top_five(transactions: DataFrame) -> list[dict]:
         )
     logger.info("- - - Получена информация о топ-5 транзакциях")
     return transactions_top_five
-
-
-def get_currency_rates(currencies: str):
-    pass
-
-
-def get_stock_prices(stocks: str):
-    pass
