@@ -1,12 +1,10 @@
 import datetime as dt
 import json
 import logging
-import os
 from pathlib import Path
-import requests as re
-from dotenv import load_dotenv
 
-from config import ROOT_PATH
+from config import ROOT_PATH, SOURCE_FILE
+from src import utils
 
 # Настройки логгера
 logger = logging.getLogger("views_logs")
@@ -42,45 +40,53 @@ def get_user_settings() -> tuple:
     return user_settings["user_currencies"], user_settings["user_stocks"]
 
 
-def get_currency_rates(currencies: str):
-    """Функция обращается к сайту через API для получения курсов валют, указанных в <user_settings.json>"""
+def main_page() -> str:
+    """Функция Главной страницы. Запрашивает у пользователя дату, относительно которой будет проводится анализ
+    транзакций. Если дата не введена (введена пустая строка) - за введённую дату принимается дата последней транзакции
+    в анализируемом Excel-файле. Возвращает json со следующими данными:
+    - Приветствие (в зависимости от текущего времени суток)
+    - суммарные траты по всем картам с начала месяца введённой даты по введённую дату
+    - пять наиболее крупных по сумме транзакций за тот же период
+    - курсы валют, указанных в файле с пользовательскими настройками (user_settings.json)
+    - стоимость акций, указанных в файле с пользовательскими настройками (user_settings.json)"""
 
-    logger.info(f"Вызов функции get_currency_rates с параметрами: {currencies}")
-    logger.info("Получение API-ключа из файла переменных окружения...")
-    load_dotenv()
-    apilayer_key = os.getenv("APILAYER_KEY")
-    logger.info("API-ключ получен")
-    url = "https://api.apilayer.com/exchangerates_data/latest"
-    params = {"base": "RUB", "symbols": ",".join(currencies)}
-    response = re.get(url, params=params, headers={"apikey": apilayer_key})
+    logger.info("Вызвана функция главной страницы")
+    transactions = utils.import_xlsx_transactions(SOURCE_FILE)
+    greeting = say_hello()
+    while True:
+        user_input = input(
+            "Введите дату в формате ДД.ММ.ГГГГ для формирования отчёта о транзакциях, "
+            "либо нажмите <Enter> для выбора последней даты: "
+        )
+        if user_input == "":
+            user_date = utils.get_last_datetime(transactions)
+            logger.info(f"Пользователь не ввёл дату. Выбрана дата последней транзакции: {user_date}")
+            break
+        else:
+            try:
+                user_date = dt.datetime.strptime(user_input, "%d.%m.%Y")
+                logger.info(f"Пользователь ввёл дату {user_date}")
+                break
+            except Exception:
+                print("Дата введена некорректно! Повторите ввод: ")
+                logger.info("Пользователь ввёл некорректную дату")
 
-    if response.status_code == 200:
-        logger.info(f" Сайт {url[:26]} передал запрошенные данные")
-        response_data = response.json()
-        currency_rates = []
-        for currency in currencies:
-            currency_rates.append({"currency": currency, "rate": round(1 / response_data["rates"][currency], 2)})
-        return currency_rates
-    else:
-        logger.error(f"Сайт {url[:26]} не отвечает")
-        raise re.RequestException
+    month_transactions = utils.get_transactions_for_month(transactions, user_date)
+    analyzed_transactions = utils.get_transactions_analyzed(month_transactions)
+    top_five_transactions = utils.get_transactions_top_five(month_transactions)
+    currency_rates = utils.get_currency_rates(get_user_settings()[0])
+    stock_prices = utils.get_stock_prices(get_user_settings()[1])
 
-
-def get_stock_prices(stocks: list[str]):
-    """Функция обращается к сайту через API для получения курсов акций, указанных в <user_settings.json>"""
-    logger.info(f"Вызов функции get_stock_prices с параметрами {stocks}")
-    logger.info("Получение API-ключа из файла переменных окружения...")
-    load_dotenv()
-    alphavantage_key = os.getenv("ALPHAVANTAGE_KEY")
-    logger.info("API-ключ получен")
-    stock_prices = []
-    for stock in stocks:
-        url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={stock}&apikey={alphavantage_key}"
-        response = re.get(url)
-        if response.status_code != 200:
-            logger.error(f"Не удалось получить информацию о стоимости акций {stock} с сайта {url[:27]}")
-            raise re.RequestException
-        logger.info(f"Получен ответ о стоимости акций {stock} с сайта {url[:27]}")
-        response_data = response.json()
-        stock_prices.append({"stock": stock, "price": round(float(response_data["Global Quote"]["05. price"]), 3)})
-    return stock_prices
+    main_page_json = json.dumps(
+        {
+            "greeting": greeting,
+            "cards": analyzed_transactions,
+            "top_transactions": top_five_transactions,
+            "currency_rates": currency_rates,
+            "stock_prices": stock_prices,
+        },
+        indent=4,
+        ensure_ascii=False,
+    )
+    logger.info("Функция главной страницы завершила работу")
+    return main_page_json

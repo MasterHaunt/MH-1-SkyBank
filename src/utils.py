@@ -1,11 +1,13 @@
 import datetime
 import logging
 import os
+from pathlib import Path
+
 import pandas as pd
 import requests as req
 from dotenv import load_dotenv
+
 from config import ROOT_PATH
-from pathlib import Path
 
 # Настройки логгера
 logger = logging.getLogger("utils_logs")
@@ -46,7 +48,13 @@ def get_last_datetime(transactions: pd.DataFrame) -> datetime:
     return max(transactions["Дата операции"])
 
 
-def get_transactions_for_month(transactions: pd.DataFrame, query_date: datetime.datetime) -> pd.DataFrame | pd.DataFrame | None:
+def get_last_date(transactions: pd.DataFrame) -> datetime:
+    return max(transactions["Дата операции"]).replace(hour=0, minute=0, second=0)
+
+
+def get_transactions_for_month(
+    transactions: pd.DataFrame, query_date: datetime.datetime
+) -> pd.DataFrame | pd.DataFrame | None:
     """Функция отбора информации о транзакциях с первого числа месяца заданной даты по заданную дату"""
     first_date = query_date.replace(day=1, hour=0, minute=0, second=0)
     logger.info(
@@ -54,7 +62,7 @@ def get_transactions_for_month(transactions: pd.DataFrame, query_date: datetime.
     )
     selected_transactions = transactions.loc[
         (transactions["Дата операции"] <= query_date) & (transactions["Дата операции"] >= first_date)
-        ]
+    ]
     if not selected_transactions.empty:
         logger.info(f"Выбраны транзакции с {first_date.strftime("%d.%m.%Y")} по {query_date.strftime("%d.%m.%Y")}")
         return selected_transactions
@@ -66,7 +74,7 @@ def get_transactions_for_month(transactions: pd.DataFrame, query_date: datetime.
 
 
 def get_transactions_for_period(
-        transactions: pd.DataFrame, date_start: datetime.datetime, date_stop: datetime.datetime
+    transactions: pd.DataFrame, date_start: datetime.datetime, date_stop: datetime.datetime
 ) -> pd.DataFrame | pd.DataFrame | None:
     """Функция отбора информации о транзакциях за заданный период времени"""
     logger.info(
@@ -74,7 +82,7 @@ def get_transactions_for_period(
     )
     selected_transactions = transactions.loc[
         (transactions["Дата операции"] <= date_stop) & (transactions["Дата операции"] >= date_start)
-        ]
+    ]
     if not selected_transactions.empty:
         logger.info(f"Выбраны транзакции с {date_start.strftime("%d.%m.%Y")} по {date_stop.strftime("%d.%m.%Y")}")
         return selected_transactions

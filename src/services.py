@@ -1,11 +1,10 @@
 import datetime as dt
-import logging
 import json
+import logging
 import re
-
-from config import ROOT_PATH
 from pathlib import Path
-from config import SOURCE_FILE
+
+from config import ROOT_PATH, SOURCE_FILE
 from src import utils
 
 # Настройки логгера
@@ -22,7 +21,7 @@ def get_transactions_mobile(start_date: dt.datetime, stop_date: dt.datetime) -> 
         f"Вызвана функция поиска транзакций с указанием мобильного телефона за период с "
         f"{start_date.strftime("%d.%m.%Y")} по {stop_date.strftime("%d.%m.%Y")}"
     )
-    mobile_number_pattern = "\d+\W\d+\W\d+\W\d+$"
+    mobile_number_pattern = "\\d+\\W\\d+\\W\\d+\\W\\d+$"
     transactions = utils.get_transactions_for_period(
         utils.import_xlsx_transactions(SOURCE_FILE), start_date, stop_date
     )
