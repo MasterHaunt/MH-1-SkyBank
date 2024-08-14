@@ -3,7 +3,7 @@ import json
 import logging
 from pathlib import Path
 
-from config import ROOT_PATH, SOURCE_FILE
+from config import ROOT_PATH, SOURCE_FILE, USER_SETTINGS
 from src import utils
 
 # Настройки логгера
@@ -17,7 +17,7 @@ logger.addHandler(file_handler)
 
 def say_hello() -> str:
     """Функция возвращает приветствие в зависимости от текущего времени суток"""
-    logger.info("Функция get_greeting вызвана")
+    logger.info("Функция say_hello вызвана")
     current_hour = dt.datetime.now().hour
     if current_hour >= 23 or current_hour < 4:
         return "Доброй ночи!"
@@ -32,9 +32,8 @@ def say_hello() -> str:
 def get_user_settings() -> tuple:
     """Функция считывает json-файл с настройками пользователя, возвращает кортеж из двух списков:
     в первом записаны валюты, во втором - акции, стоимость которых необходимо отобразить"""
-    user_settings_path = Path(ROOT_PATH, "user_settings.json")
-    logger.info(f"Загрузка настроек пользователя из файла {user_settings_path}")
-    with open(user_settings_path) as file:
+    logger.info(f"Загрузка настроек пользователя из файла {USER_SETTINGS}")
+    with open(USER_SETTINGS) as file:
         user_settings = json.load(file)
         logger.info("Настройки пользователя получены")
     return user_settings["user_currencies"], user_settings["user_stocks"]

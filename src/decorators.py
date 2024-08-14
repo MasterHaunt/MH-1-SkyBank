@@ -19,10 +19,10 @@ def report_save_to_xlsx(filename: str | None = None) -> Callable:
     """Функция-декоратор, записывающая отчёт в указанный файл. Если файл не указан, отчёт будет записан
     в файл ./reports/SkyBank-report_<текущая дата>"""
 
-    def wrapper(func: Callable) -> Callable:
+    def xlsx_writer(func: Callable) -> Callable:
         @wraps(func)
-        def inner(*args: Any, **kwargs: Any) -> Any:
-            if filename == "":
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            if filename is None:
                 logger.info(f"Вызван декоратор для записи отчёта в файл reports/SkyBank-report_{dt.date.today()}.xlsx")
                 report_name = f"SkyBank-report_{dt.date.today()}"
             else:
@@ -32,7 +32,8 @@ def report_save_to_xlsx(filename: str | None = None) -> Callable:
             result.to_excel(f"reports/{report_name}.xlsx")
             logger.info(f"Декоратор report_save_to_xlsx - записал отчёт в файл reports/{report_name}.xlsx")
             print(f"Отчёт о средних тратах за три месяца записан в файл reports/{report_name}.xlsx")
+            return result
 
-        return inner
+        return wrapper
 
-    return wrapper
+    return xlsx_writer

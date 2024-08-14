@@ -38,19 +38,21 @@ def get_weekdays_transactions_df(input_dataframe: pd.DataFrame) -> pd.DataFrame:
     return weekdays_transactions
 
 
-@report_save_to_xlsx(filename=input("Введите имя файла для записи отчёта: "))
+@report_save_to_xlsx()
 def spending_by_weekday(transactions: pd.DataFrame, date: Optional[str] = None) -> pd.DataFrame | pd.DataFrame | None:
     """Функция расчёта средней величины расходов за последние три месяца до указанной даты.
     Если дата не указана, за дату окончания исследуемого периода принимается дата последней транзакции в датафрейме,
     поступающем на вход."""
     if date is None:
-        logger.info("Вызвана функция расчёта среднего значения трат за три месяца без указания конечной даты")
+        logger.info(
+            "Вызвана функция расчёта среднего значения трат по дням недели за три месяца без указания конечной даты"
+        )
         date_stop = utils.get_last_date(transactions)
         logger.info(f"Конечная дата установлена по последней транзакции: {date_stop.strftime("%d.%m.%Y")}")
     else:
         date_stop = dt.datetime.strptime(date, "%d.%m.%Y")
         logger.info(
-            f"Вызвана функция расчёта среднего значения трат "
+            f"Вызвана функция расчёта среднего значения трат по дням недели "
             f"за три месяца от даты: {date_stop.strftime("%d.%m.%Y")}"
         )
     try:

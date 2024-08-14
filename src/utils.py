@@ -45,10 +45,12 @@ def import_xlsx_transactions(xlsx_filename: str) -> pd.DataFrame | pd.DataFrame 
 
 
 def get_last_datetime(transactions: pd.DataFrame) -> datetime:
+    """Функция получения даты и времени последней транзакции"""
     return max(transactions["Дата операции"])
 
 
 def get_last_date(transactions: pd.DataFrame) -> datetime:
+    """Функция получения даты последней транзакции с временем 00:00:00"""
     return max(transactions["Дата операции"]).replace(hour=0, minute=0, second=0)
 
 
@@ -57,18 +59,19 @@ def get_transactions_for_month(
 ) -> pd.DataFrame | pd.DataFrame | None:
     """Функция отбора информации о транзакциях с первого числа месяца заданной даты по заданную дату"""
     first_date = query_date.replace(day=1, hour=0, minute=0, second=0)
+    last_date = query_date.replace(hour=23, minute=59, second=59)
     logger.info(
-        f"Вызвана функция отбора транзакций с {first_date.strftime("%d.%m.%Y")} по {query_date.strftime("%d.%m.%Y")}"
+        f"Вызвана функция отбора транзакций с {first_date.strftime("%d.%m.%Y")} по {last_date.strftime("%d.%m.%Y")}"
     )
     selected_transactions = transactions.loc[
-        (transactions["Дата операции"] <= query_date) & (transactions["Дата операции"] >= first_date)
+        (transactions["Дата операции"] <= last_date) & (transactions["Дата операции"] >= first_date)
     ]
     if not selected_transactions.empty:
-        logger.info(f"Выбраны транзакции с {first_date.strftime("%d.%m.%Y")} по {query_date.strftime("%d.%m.%Y")}")
+        logger.info(f"Выбраны транзакции с {first_date.strftime("%d.%m.%Y")} по {last_date.strftime("%d.%m.%Y")}")
         return selected_transactions
     else:
         logger.error(
-            f"В период с {first_date.strftime("%d.%m.%Y")} по {query_date.strftime("%d.%m.%Y")} транзакций не найдено!"
+            f"В период с {first_date.strftime("%d.%m.%Y")} по {last_date.strftime("%d.%m.%Y")} транзакций не найдено!"
         )
         return None
 
@@ -80,6 +83,8 @@ def get_transactions_for_period(
     logger.info(
         f"Вызвана функция отбора транзакций с {date_start.strftime("%d.%m.%Y")} по {date_stop.strftime("%d.%m.%Y")}"
     )
+    date_start = date_start.replace(hour=0, minute=0, second=0)
+    date_stop = date_stop.replace(hour=23, minute=59, second=59)
     selected_transactions = transactions.loc[
         (transactions["Дата операции"] <= date_stop) & (transactions["Дата операции"] >= date_start)
     ]
@@ -147,8 +152,11 @@ def get_currency_rates(currencies: str):
     logger.info("API-ключ получен")
     url = "https://api.apilayer.com/exchangerates_data/latest"
     params = {"base": "RUB", "symbols": ",".join(currencies)}
-    response = req.get(url, params=params, headers={"apikey": apilayer_key})
-
+    try:
+        response = req.get(url, params=params, headers={"apikey": apilayer_key})
+    except req.RequestException as e:
+        logger.error(f"При получении курсов валют возникла ошибка {e}")
+        return None
     if response.status_code == 200:
         logger.info(f" Сайт {url[:26]} передал запрошенные данные")
         response_data = response.json()
@@ -171,11 +179,13 @@ def get_stock_prices(stocks: list[str]):
     stock_prices = []
     for stock in stocks:
         url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={stock}&apikey={alphavantage_key}"
-        response = req.get(url)
-        if response.status_code != 200:
-            logger.error(f"Не удалось получить информацию о стоимости акций {stock} с сайта {url[:27]}")
-            raise req.RequestException
-        logger.info(f"Получен ответ о стоимости акций {stock} с сайта {url[:27]}")
-        response_data = response.json()
-        stock_prices.append({"stock": stock, "price": round(float(response_data["Global Quote"]["05. price"]), 3)})
+        try:
+            response = req.get(url)
+        except req.RequestException as e:
+            logger.error(f"При получении стоимости акций {stock} возникла ошибка {e}")
+            return None
+        if response.status_code == 200:
+            logger.info(f"Получен ответ о стоимости акций {stock} с сайта {url[:27]}")
+            response_data = response.json()
+            stock_prices.append({"stock": stock, "price": round(float(response_data["Global Quote"]["05. price"]), 3)})
     return stock_prices

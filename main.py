@@ -1,13 +1,10 @@
+import datetime as dt
+import logging
 import os
 from pathlib import Path
 
-from src import utils
-from src import views
-
 from config import SOURCE_FILE
-
-import datetime as dt
-import logging
+from src import reports, services, utils, views
 
 # Настройки логгера
 logger = logging.getLogger("main_logs")
@@ -43,7 +40,6 @@ def main_function():
             break
 
         elif user_function == "2":
-            from src import services
 
             logger.info("Выбран поиск транзакций с номерами мобильных телефонов")
             print("Выбран поиск транзакций с номерами мобильных телефонов")
@@ -69,7 +65,7 @@ def main_function():
                 print("Даты введены некорректно! Дата окончания периода раньше даты начала.")
                 logger.info("Даты введены некорректно! Дата окончания периода раньше даты начала.")
             else:
-                print(services.get_transactions_mobile(date_start, date_stop))
+                print(services.get_transactions_mobile(SOURCE_FILE, date_start, date_stop))
             break
 
         elif user_function == "3":
@@ -93,7 +89,6 @@ def main_function():
                     except Exception:
                         print("Дата введена некорректно! Повторите ввод: ")
                         logger.info("Пользователь ввёл некорректную дату")
-            from src import reports
 
             reports.spending_by_weekday(utils.import_xlsx_transactions(SOURCE_FILE), user_input)
             break

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "44-skybank"
+name = "MH-1-SkyBank"
 version = "0.1.0"
 description = ""
 authors = ["Andrey Cheltyomov <master.haunt@gmail.com>"]

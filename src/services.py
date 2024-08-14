@@ -4,7 +4,7 @@ import logging
 import re
 from pathlib import Path
 
-from config import ROOT_PATH, SOURCE_FILE
+from config import ROOT_PATH
 from src import utils
 
 # Настройки логгера
@@ -16,15 +16,20 @@ file_handler.setFormatter(file_formatter)
 logger.addHandler(file_handler)
 
 
-def get_transactions_mobile(start_date: dt.datetime, stop_date: dt.datetime) -> str | None:
+def get_transactions_mobile(filename: str, start_date: dt.datetime, stop_date: dt.datetime) -> str | None:
     logger.info(
         f"Вызвана функция поиска транзакций с указанием мобильного телефона за период с "
         f"{start_date.strftime("%d.%m.%Y")} по {stop_date.strftime("%d.%m.%Y")}"
     )
     mobile_number_pattern = "\\d+\\W\\d+\\W\\d+\\W\\d+$"
-    transactions = utils.get_transactions_for_period(
-        utils.import_xlsx_transactions(SOURCE_FILE), start_date, stop_date
-    )
+    transactions = utils.get_transactions_for_period(utils.import_xlsx_transactions(filename), start_date, stop_date)
+    if transactions is None:
+        logger.error(
+            f"За период с {start_date.strftime("%d.%m.%Y")} по {stop_date.strftime("%d.%m.%Y")} "
+            f"транзакций не найдено!"
+        )
+        return None
+
     queried_transactions = []
     for index, transaction in transactions.iterrows():
         if re.search(mobile_number_pattern, transaction["Описание"], flags=re.IGNORECASE):
